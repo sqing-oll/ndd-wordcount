@@ -34,12 +34,26 @@ jobs:
           echo "macOS Version: $(sw_vers -productVersion)"
           echo "Architecture: $(uname -m)"
           echo "Qt5 Path: $(brew --prefix qt@5)"
+          echo "Workspace: ${{ github.workspace }}"
+
+      - name: List project structure
+        run: |
+          echo "=== Project Root ==="
+          ls -la ${{ github.workspace }}
+          echo ""
+          echo "=== Source Directory ==="
+          ls -la ${{ github.workspace }}/src 2>/dev/null || echo "src directory not found"
+          echo ""
+          echo "=== Check CMakeLists.txt ==="
+          test -f "${{ github.workspace }}/CMakeLists.txt" && echo "✓ CMakeLists.txt found" || echo "✗ CMakeLists.txt NOT found"
+          cat "${{ github.workspace }}/CMakeLists.txt" 2>/dev/null | head -5
 
       - name: Configure CMake
         run: |
           mkdir -p build
-          cd build
-          cmake -DCMAKE_PREFIX_PATH=$(brew --prefix qt@5)/lib/cmake ..
+          cmake -S ${{ github.workspace }} -B build \
+            -DCMAKE_PREFIX_PATH=$(brew --prefix qt@5)/lib/cmake \
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Build plugin
         run: |
@@ -78,11 +92,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools
 
+      - name: Display workspace
+        run: |
+          echo "Workspace: ${{ github.workspace }}"
+          echo "=== Project Root ==="
+          ls -la ${{ github.workspace }}
+
+      - name: List project structure
+        run: |
+          echo "=== Check CMakeLists.txt ==="
+          test -f "${{ github.workspace }}/CMakeLists.txt" && echo "✓ CMakeLists.txt found" || echo "✗ CMakeLists.txt NOT found"
+          cat "${{ github.workspace }}/CMakeLists.txt" 2>/dev/null | head -5
+
       - name: Configure CMake
         run: |
           mkdir -p build
-          cd build
-          cmake ..
+          cmake -S ${{ github.workspace }} -B build \
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Build plugin
         run: |
