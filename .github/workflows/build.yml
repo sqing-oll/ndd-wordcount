@@ -6,16 +6,23 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: 安装环境
+
+      # 安装依赖
+      - name: 安装Qt5和CMake
         run: brew install qt@5 cmake
-      - name: 编译
+
+      # 关键修复：进入 ndd-plugin 目录再编译！
+      - name: 编译插件
         run: |
-          mkdir build && cd build
-          # ✅ M芯片专属正确路径
-          cmake -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt@5/lib/cmake ..
+          cd ndd-plugin  # ← 这一行是修复核心！
+          mkdir build
+          cd build
+          cmake -DCMAKE_PREFIX_PATH=/usr/local/opt/qt@5/lib/cmake ..
           make -j4
-      - name: 上传插件
+
+      # 上传编译好的插件
+      - name: 打包插件文件
         uses: actions/upload-artifact@v4
         with:
           name: WordCount-Plugin
-          path: build/src/wordcount/libWordCount.dylib
+          path: ndd-plugin/build/src/wordcount/libWordCount.dylib
