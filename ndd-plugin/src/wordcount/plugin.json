@@ -1,0 +1,12 @@
+{
+    "name": "WordCount",
+    "version": "1.0",
+    "author": "Notepad-- User",
+    "description": "字数统计插件（支持选中/全文统计）",
+    "menu": [
+        {
+            "name": "字数统计",
+            "id": 1001
+        }
+    ]
+}
