@@ -90,8 +90,8 @@ jobs:
         with:
           name: wordcount-plugin-macos-15
           path: |
-            ndd-plugin/build/src/wordcount/libWordCount.dylib
-            ndd-plugin/build/plugin.json
+            ndd-plugin/libWordCount.dylib
+            ndd-plugin/plugin.json
           retention-days: 30
 
   build-ubuntu:
