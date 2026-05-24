@@ -24,8 +24,9 @@ if(APPLE)
     )
 endif()
 
+# Output to build directory
 set_target_properties(WordCount PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/../..
+    LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
     PREFIX "lib"
 )
 
