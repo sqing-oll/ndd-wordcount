@@ -15,17 +15,14 @@ typedef struct _NDD_PROC_DATA
 {
     int nVersion;
     char szName[64];
-}NDD_PROC_DATA;
-
-typedef bool (*NDD_PROC_IDENTIFY_FUNC)(NDD_PROC_DATA* pData);
-typedef void (*NDD_PROC_MENU_CLICK_FUNC)(int nMenuID);
-
-#define NDD_PROC_IDENTIFY extern "C" NDD_PLUGIN_API bool
-#define NDD_PROC_MENU_CLICK extern "C" NDD_PLUGIN_API void
+} NDD_PROC_DATA;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+NDD_PLUGIN_API bool NDD_PROC_IDENTIFY(NDD_PROC_DATA* pData);
+NDD_PLUGIN_API void NDD_PROC_MENU_CLICK(int nMenuID);
 
 NDD_PLUGIN_API void NDD_GetText(char* szText, int nSize);
 NDD_PLUGIN_API void NDD_GetSelectedText(char* szText, int nSize);

@@ -3,8 +3,16 @@
 
 #include "nddplugin.h"
 
-bool NDD_PROC_IDENTIFY(NDD_PROC_DATA* pData);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void NDD_PROC_MENU_CLICK(int nMenuID);
+NDD_PLUGIN_API bool NDD_PROC_IDENTIFY(NDD_PROC_DATA* pData);
+
+NDD_PLUGIN_API void NDD_PROC_MENU_CLICK(int nMenuID);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // WORDCOUNT_H

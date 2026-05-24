@@ -3,14 +3,14 @@
 #include <QString>
 #include <QRegularExpression>
 
-NDD_PROC_IDENTIFY(NDD_PROC_DATA* pData)
+extern "C" bool NDD_PROC_IDENTIFY(NDD_PROC_DATA* pData)
 {
     pData->nVersion = NDD_PLUGIN_VERSION;
     strcpy(pData->szName, "WordCount");
     return true;
 }
 
-NDD_PROC_MENU_CLICK(int nMenuID)
+extern "C" void NDD_PROC_MENU_CLICK(int nMenuID)
 {
     if (nMenuID != 1001) return;
 
