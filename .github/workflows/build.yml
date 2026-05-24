@@ -1,28 +1,103 @@
-name: 编译Notepad--字数统计插件
-on: [push, workflow_dispatch]
+name: Build WordCount Plugin
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build-mac:
+  build-macos:
     runs-on: macos-15
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # 安装依赖
-      - name: 安装Qt5和CMake
-        run: brew install qt@5 cmake
-
-      # 关键修复：进入 ndd-plugin 目录再编译！
-      - name: 编译插件
+      - name: Install Xcode Command Line Tools
         run: |
-          cd ndd-plugin  # ← 这一行是修复核心！
-          mkdir build
-          cd build
-          cmake -DCMAKE_PREFIX_PATH=/usr/local/opt/qt@5/lib/cmake ..
-          make -j4
+          xcode-select --install || true
+          xcode-select -p
 
-      # 上传编译好的插件
-      - name: 打包插件文件
+      - name: Install Qt5 via Homebrew
+        run: |
+          brew install qt@5
+
+      - name: Set Qt5 environment variables
+        run: |
+          echo "CMAKE_PREFIX_PATH=$(brew --prefix qt@5)/lib/cmake" >> $GITHUB_ENV
+          echo "$(brew --prefix qt@5)/bin" >> $GITHUB_PATH
+
+      - name: Display system info
+        run: |
+          echo "macOS Version: $(sw_vers -productVersion)"
+          echo "Architecture: $(uname -m)"
+          echo "Qt5 Path: $(brew --prefix qt@5)"
+
+      - name: Configure CMake
+        run: |
+          mkdir -p build
+          cd build
+          cmake -DCMAKE_PREFIX_PATH=$(brew --prefix qt@5)/lib/cmake ..
+
+      - name: Build plugin
+        run: |
+          cd build
+          make -j$(sysctl -n hw.ncpu)
+
+      - name: List build artifacts
+        run: |
+          find build -name "*.dylib" -o -name "*.so" 2>/dev/null | head -20
+
+      - name: Set file permissions
+        run: |
+          if [ -f "build/src/wordcount/libWordCount.dylib" ]; then
+            chmod 755 build/src/wordcount/libWordCount.dylib
+            ls -lh build/src/wordcount/libWordCount.dylib
+          fi
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: WordCount-Plugin
-          path: ndd-plugin/build/src/wordcount/libWordCount.dylib
+          name: wordcount-plugin-macos-15
+          path: |
+            build/src/wordcount/libWordCount.*
+            build/src/wordcount/plugin.json
+          retention-days: 30
+
+  build-ubuntu:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Qt5
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools
+
+      - name: Configure CMake
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
+
+      - name: Build plugin
+        run: |
+          cd build
+          make -j$(nproc)
+
+      - name: List build artifacts
+        run: |
+          find build -name "*.so" 2>/dev/null | head -20
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wordcount-plugin-linux
+          path: |
+            build/src/wordcount/libWordCount.*
+            build/src/wordcount/plugin.json
+          retention-days: 30
