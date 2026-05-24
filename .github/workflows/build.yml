@@ -29,46 +29,60 @@ jobs:
           echo "CMAKE_PREFIX_PATH=$(brew --prefix qt@5)/lib/cmake" >> $GITHUB_ENV
           echo "$(brew --prefix qt@5)/bin" >> $GITHUB_PATH
 
-      - name: Display system info
+      - name: Display system information
         run: |
           echo "macOS Version: $(sw_vers -productVersion)"
+          echo "macOS Build: $(sw_vers -buildVersion)"
           echo "Architecture: $(uname -m)"
+          echo "CPU Cores: $(sysctl -n hw.ncpu)"
           echo "Qt5 Path: $(brew --prefix qt@5)"
-          echo "Workspace: ${{ github.workspace }}"
 
       - name: List project structure
         run: |
           echo "=== Project Root ==="
-          ls -la ${{ github.workspace }}
+          ls -la
           echo ""
-          echo "=== Source Directory ==="
-          ls -la ${{ github.workspace }}/src 2>/dev/null || echo "src directory not found"
+          echo "=== ndd-plugin Directory ==="
+          ls -la ndd-plugin/
           echo ""
           echo "=== Check CMakeLists.txt ==="
-          test -f "${{ github.workspace }}/CMakeLists.txt" && echo "✓ CMakeLists.txt found" || echo "✗ CMakeLists.txt NOT found"
-          cat "${{ github.workspace }}/CMakeLists.txt" 2>/dev/null | head -5
+          if [ -f "ndd-plugin/CMakeLists.txt" ]; then
+            echo "✓ ndd-plugin/CMakeLists.txt found"
+            head -5 ndd-plugin/CMakeLists.txt
+          else
+            echo "✗ ndd-plugin/CMakeLists.txt NOT found"
+          fi
 
       - name: Configure CMake
+        working-directory: ./ndd-plugin
         run: |
           mkdir -p build
-          cmake -S ${{ github.workspace }} -B build \
+          cmake -S . -B build \
             -DCMAKE_PREFIX_PATH=$(brew --prefix qt@5)/lib/cmake \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build plugin
+        working-directory: ./ndd-plugin
         run: |
-          cd build
-          make -j$(sysctl -n hw.ncpu)
+          cmake --build build --config Release -- -j$(sysctl -n hw.ncpu)
 
       - name: List build artifacts
         run: |
-          find build -name "*.dylib" -o -name "*.so" 2>/dev/null | head -20
+          echo "=== Build Output ==="
+          find ndd-plugin/build -name "*.dylib" -o -name "*.so" 2>/dev/null
+          echo ""
+          echo "=== Plugin Directory ==="
+          ls -lh ndd-plugin/build/src/wordcount/ 2>/dev/null || echo "Plugin directory not found"
 
       - name: Set file permissions
         run: |
-          if [ -f "build/src/wordcount/libWordCount.dylib" ]; then
-            chmod 755 build/src/wordcount/libWordCount.dylib
-            ls -lh build/src/wordcount/libWordCount.dylib
+          if [ -f "ndd-plugin/build/src/wordcount/libWordCount.dylib" ]; then
+            chmod 755 ndd-plugin/build/src/wordcount/libWordCount.dylib
+            ls -lh ndd-plugin/build/src/wordcount/libWordCount.dylib
+            file ndd-plugin/build/src/wordcount/libWordCount.dylib
+          else
+            echo "Warning: libWordCount.dylib not found in expected location"
+            find ndd-plugin/build -name "*.dylib" -type f
           fi
 
       - name: Upload artifacts
@@ -76,8 +90,8 @@ jobs:
         with:
           name: wordcount-plugin-macos-15
           path: |
-            build/src/wordcount/libWordCount.*
-            build/src/wordcount/plugin.json
+            ndd-plugin/build/src/wordcount/libWordCount.dylib
+            ndd-plugin/build/plugin.json
           retention-days: 30
 
   build-ubuntu:
@@ -92,38 +106,53 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools
 
-      - name: Display workspace
+      - name: Display system information
         run: |
-          echo "Workspace: ${{ github.workspace }}"
-          echo "=== Project Root ==="
-          ls -la ${{ github.workspace }}
+          echo "Ubuntu Version: $(lsb_release -ds)"
+          echo "Architecture: $(uname -m)"
+          echo "CPU Cores: $(nproc)"
 
       - name: List project structure
         run: |
+          echo "=== Project Root ==="
+          ls -la
+          echo ""
+          echo "=== ndd-plugin Directory ==="
+          ls -la ndd-plugin/
+          echo ""
           echo "=== Check CMakeLists.txt ==="
-          test -f "${{ github.workspace }}/CMakeLists.txt" && echo "✓ CMakeLists.txt found" || echo "✗ CMakeLists.txt NOT found"
-          cat "${{ github.workspace }}/CMakeLists.txt" 2>/dev/null | head -5
+          if [ -f "ndd-plugin/CMakeLists.txt" ]; then
+            echo "✓ ndd-plugin/CMakeLists.txt found"
+            head -5 ndd-plugin/CMakeLists.txt
+          else
+            echo "✗ ndd-plugin/CMakeLists.txt NOT found"
+          fi
 
       - name: Configure CMake
+        working-directory: ./ndd-plugin
         run: |
           mkdir -p build
-          cmake -S ${{ github.workspace }} -B build \
+          cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build plugin
+        working-directory: ./ndd-plugin
         run: |
-          cd build
-          make -j$(nproc)
+          cmake --build build --config Release -- -j$(nproc)
 
       - name: List build artifacts
         run: |
-          find build -name "*.so" 2>/dev/null | head -20
+          echo "=== Build Output ==="
+          find ndd-plugin/build -name "*.so" 2>/dev/null
+          echo ""
+          echo "=== Plugin Directory ==="
+          ls -lh ndd-plugin/build/src/wordcount/ 2>/dev/null || echo "Plugin directory not found"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: wordcount-plugin-linux
           path: |
-            build/src/wordcount/libWordCount.*
-            build/src/wordcount/plugin.json
+            ndd-plugin/build/src/wordcount/libWordCount.so
+            ndd-plugin/build/plugin.json
           retention-days: 30
