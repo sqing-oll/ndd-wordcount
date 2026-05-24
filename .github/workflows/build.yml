@@ -64,26 +64,63 @@ jobs:
       - name: Build plugin
         working-directory: ./ndd-plugin
         run: |
-          cmake --build build --config Release -- -j$(sysctl -n hw.ncpu)
+          set -e  # Exit on error
+          cmake --build build --config Release -- -j$(sysctl -n hw.ncpu) || {
+            echo "❌ Build failed!"
+            exit 1
+          }
+
+      - name: Verify build artifacts
+        run: |
+          echo "=== Verifying Build ==="
+          echo ""
+          echo "Looking for .dylib files..."
+          DYLIB_FILES=$(find ndd-plugin/build -name "*.dylib" -type f)
+          echo "$DYLIB_FILES"
+          echo ""
+
+          # Check if libWordCount.dylib exists
+          DYLIB_PATH="ndd-plugin/build/src/wordcount/libWordCount.dylib"
+          if [ ! -f "$DYLIB_PATH" ]; then
+            echo "❌ libWordCount.dylib NOT FOUND!"
+            echo "Looking for alternatives..."
+            find ndd-plugin/build -name "*.dylib" -type f
+            exit 1
+          fi
+
+          # Check file size
+          FILE_SIZE=$(stat -f%z "$DYLIB_PATH" 2>/dev/null || stat -c%s "$DYLIB_PATH" 2>/dev/null)
+          echo "File size: $FILE_SIZE bytes"
+
+          # Reject very small files
+          if [ "$FILE_SIZE" -lt 10000 ]; then
+            echo "❌ ERROR: Plugin file is too small ($FILE_SIZE bytes)! Build likely failed."
+            echo "File content:"
+            file "$DYLIB_PATH"
+            hexdump -C "$DYLIB_PATH" | head -5
+            exit 1
+          fi
+
+          echo "✅ Plugin file size looks OK"
+
+      - name: Analyze plugin dependencies
+        run: |
+          DYLIB_PATH="ndd-plugin/build/src/wordcount/libWordCount.dylib"
+          echo "=== Plugin Dependencies ==="
+          otool -L "$DYLIB_PATH"
+          echo ""
+          echo "=== Plugin Symbols (first 30) ==="
+          nm -g "$DYLIB_PATH" | head -30
 
       - name: List build artifacts
         run: |
-          echo "=== Build Output ==="
-          find ndd-plugin/build -name "*.dylib" -o -name "*.so" 2>/dev/null
-          echo ""
-          echo "=== Plugin Directory ==="
-          ls -lh ndd-plugin/build/src/wordcount/ 2>/dev/null || echo "Plugin directory not found"
+          echo "=== Final Build Output ==="
+          ls -lh ndd-plugin/build/src/wordcount/
 
       - name: Set file permissions
         run: |
-          if [ -f "ndd-plugin/build/src/wordcount/libWordCount.dylib" ]; then
-            chmod 755 ndd-plugin/build/src/wordcount/libWordCount.dylib
-            ls -lh ndd-plugin/build/src/wordcount/libWordCount.dylib
-            file ndd-plugin/build/src/wordcount/libWordCount.dylib
-          else
-            echo "Warning: libWordCount.dylib not found in expected location"
-            find ndd-plugin/build -name "*.dylib" -type f
-          fi
+          chmod 755 ndd-plugin/build/src/wordcount/libWordCount.dylib
+          ls -lh ndd-plugin/build/src/wordcount/libWordCount.dylib
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
