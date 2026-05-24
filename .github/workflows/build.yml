@@ -1,0 +1,27 @@
+name: 编译Notepad--字数统计插件
+on: [push, workflow_dispatch]
+
+jobs:
+  build-mac:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      
+      # 安装编译依赖（Qt5、CMake）
+      - name: 安装环境
+        run: |
+          brew install qt@5 cmake
+      
+      # 编译插件
+      - name: 编译
+        run: |
+          mkdir build && cd build
+          cmake -DCMAKE_PREFIX_PATH=/usr/local/opt/qt@5/lib/cmake ..
+          make -j4
+      
+      # 上传编译好的插件文件
+      - name: 上传成品dylib
+        uses: actions/upload-artifact@v4
+        with:
+          name: wordcount-plugin
+          path: build/src/wordcount/libWordCount.dylib
