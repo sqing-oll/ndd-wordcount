@@ -20,14 +20,14 @@ jobs:
           xcode-select --install || true
           xcode-select -p
 
-      - name: Install Qt5 via Homebrew
+      - name: Install Qt6 via Homebrew
         run: |
-          brew install qt@5
+          brew install qt
 
-      - name: Set Qt5 environment variables
+      - name: Set Qt6 environment variables
         run: |
-          echo "CMAKE_PREFIX_PATH=$(brew --prefix qt@5)/lib/cmake" >> $GITHUB_ENV
-          echo "$(brew --prefix qt@5)/bin" >> $GITHUB_PATH
+          echo "CMAKE_PREFIX_PATH=$(brew --prefix qt)/lib/cmake" >> $GITHUB_ENV
+          echo "$(brew --prefix qt)/bin" >> $GITHUB_PATH
 
       - name: Display system information
         run: |
@@ -35,7 +35,7 @@ jobs:
           echo "macOS Build: $(sw_vers -buildVersion)"
           echo "Architecture: $(uname -m)"
           echo "CPU Cores: $(sysctl -n hw.ncpu)"
-          echo "Qt5 Path: $(brew --prefix qt@5)"
+          echo "Qt6 Path: $(brew --prefix qt)"
 
       - name: List project structure
         run: |
@@ -58,7 +58,7 @@ jobs:
         run: |
           mkdir -p build
           cmake -S . -B build \
-            -DCMAKE_PREFIX_PATH=$(brew --prefix qt@5)/lib/cmake \
+            -DCMAKE_PREFIX_PATH=$(brew --prefix qt)/lib/cmake \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build plugin
@@ -90,8 +90,8 @@ jobs:
         with:
           name: wordcount-plugin-macos-15
           path: |
-            ndd-plugin/libWordCount.dylib
-            ndd-plugin/plugin.json
+            ndd-plugin/build/src/wordcount/libWordCount.dylib
+            ndd-plugin/build/plugin.json
           retention-days: 30
 
   build-ubuntu:
@@ -101,10 +101,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Qt5
+      - name: Install Qt6
         run: |
           sudo apt-get update
-          sudo apt-get install -y qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools
+          sudo apt-get install -y qt6-base-dev qt6-base-private-dev
 
       - name: Display system information
         run: |
